@@ -29,6 +29,13 @@ BASE_TOKEN = os.environ.get("BASE_TOKEN", "")
 @app.route("/", methods=["GET", "POST", "OPTIONS"])
 def index():
     """处理所有请求"""
+    # 飞书 URL 验证请求
+    if request.method == "GET":
+        challenge = request.args.get("challenge", "")
+        if challenge:
+            logger.info(f"Feishu URL verification: challenge={challenge}")
+            return jsonify({"challenge": challenge})
+
     if request.method == "OPTIONS":
         return "", 204
 

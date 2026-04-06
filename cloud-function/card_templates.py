@@ -10,21 +10,7 @@ from datetime import date
 def build_overview_card(today: date, overview: Dict, message_id: str = "") -> Dict:
     """
     构建概览卡片（主卡片）
-    overview 格式:
-    {
-        "dev_in_progress": 12,
-        "dev_completed": 3,
-        "dev_overdue": 2,
-        "test_in_progress": 8,
-        "test_completed": 1,
-        "test_overdue": 1,
-        "defect_pending": 5,
-        "defect_processing": 3,
-        "defect_closed": 1,
-    }
-    Note: message_id 保留用于未来功能（如消息编辑/删除），当前未使用。
     """
-    # 使用 .get() 并设置默认值，避免 KeyError
     dev_in_progress = overview.get("dev_in_progress", 0)
     dev_completed = overview.get("dev_completed", 0)
     dev_overdue = overview.get("dev_overdue", 0)
@@ -131,7 +117,7 @@ def build_overview_card(today: date, overview: Dict, message_id: str = "") -> Di
 def build_task_list_card(today: date, category: str, tasks: List[Dict]) -> Dict:
     """
     构建任务列表卡片
-    tasks 格式: [{"record_id": "...", "table_id": "...", "name": "...", "user": "...", "plan_date": "...", "status": "...", "extra": "..."}]
+    tasks 格式: [{"record_id": "...", "table_id": "...", "name": "...", "user": "...", "plan_date": "...", "status": "..."}]
     """
     elements = [
         {
@@ -144,7 +130,6 @@ def build_task_list_card(today: date, category: str, tasks: List[Dict]) -> Dict:
         {"tag": "hr"}
     ]
 
-    # 空任务列表处理
     if not tasks:
         elements.append({
             "tag": "div",
@@ -155,67 +140,125 @@ def build_task_list_card(today: date, category: str, tasks: List[Dict]) -> Dict:
         })
     else:
         for task in tasks:
-            # 使用 .get() 并设置默认值，避免 KeyError
             task_name = task.get("name", "未命名任务")
             task_user = task.get("user", "未分配")
             task_record_id = task.get("record_id", "")
             task_table_id = task.get("table_id", "")
+            plan_str = task.get("plan_date", "未计划")
+            status = task.get("status", "")
 
             # 任务行
-            plan_str = task.get("plan_date", "未计划")
-            extra = task.get("extra", "")
-            extra_str = f"\n   {extra}" if extra else ""
-
             elements.append({
                 "tag": "div",
                 "text": {
                     "tag": "lark_md",
                     "content": (
                         f"**{task_name}**\n"
-                        f"👤 {task_user} | 📅 计划: {plan_str}{extra_str}"
+                        f"👤 {task_user} | 📅 计划: {plan_str} | 状态: {status}"
                     )
                 }
             })
 
-        # 操作按钮
-        actions = [
-            {
-                "tag": "button",
-                "text": {"tag": "plain_text", "content": "✓ 完成"},
-                "type": "primary",
-                "value": {
-                    "action": "complete",
-                    "record_id": task_record_id,
-                    "table_id": task_table_id
-                }
-            },
-            {
-                "tag": "button",
-                "text": {"tag": "plain_text", "content": "📅 改时间"},
-                "type": "default",
-                "value": {
-                    "action": "edit_date",
-                    "record_id": task_record_id,
-                    "table_id": task_table_id
-                }
-            },
-            {
-                "tag": "button",
-                "text": {"tag": "plain_text", "content": "📝 备注"},
-                "type": "default",
-                "value": {
-                    "action": "edit_remark",
-                    "record_id": task_record_id,
-                    "table_id": task_table_id
-                }
-            }
-        ]
+            # 根据类别显示不同按钮
+            if category == "进行中":
+                # 进行中任务：显示开始/结束按钮
+                actions = [
+                    {
+                        "tag": "button",
+                        "text": {"tag": "plain_text", "content": "▶️ 开始"},
+                        "type": "primary",
+                        "value": {
+                            "action": "start_task",
+                            "record_id": task_record_id,
+                            "table_id": task_table_id
+                        }
+                    },
+                    {
+                        "tag": "button",
+                        "text": {"tag": "plain_text", "content": "🏁 结束"},
+                        "type": "danger",
+                        "value": {
+                            "action": "complete_task",
+                            "record_id": task_record_id,
+                            "table_id": task_table_id
+                        }
+                    },
+                    {
+                        "tag": "button",
+                        "text": {"tag": "plain_text", "content": "📅 改时间"},
+                        "type": "default",
+                        "value": {
+                            "action": "edit_date",
+                            "record_id": task_record_id,
+                            "table_id": task_table_id
+                        }
+                    },
+                ]
+            elif category == "今日完成" or category == "逾期任务":
+                # 已完成/逾期任务：显示结束和备注按钮
+                actions = [
+                    {
+                        "tag": "button",
+                        "text": {"tag": "plain_text", "content": "🏁 结束"},
+                        "type": "danger",
+                        "value": {
+                            "action": "complete_task",
+                            "record_id": task_record_id,
+                            "table_id": task_table_id
+                        }
+                    },
+                    {
+                        "tag": "button",
+                        "text": {"tag": "plain_text", "content": "📝 备注"},
+                        "type": "default",
+                        "value": {
+                            "action": "edit_remark",
+                            "record_id": task_record_id,
+                            "table_id": task_table_id
+                        }
+                    },
+                ]
+            else:
+                # 默认按钮
+                actions = [
+                    {
+                        "tag": "button",
+                        "text": {"tag": "plain_text", "content": "✓ 完成"},
+                        "type": "primary",
+                        "value": {
+                            "action": "complete_task",
+                            "record_id": task_record_id,
+                            "table_id": task_table_id
+                        }
+                    },
+                    {
+                        "tag": "button",
+                        "text": {"tag": "plain_text", "content": "📅 改时间"},
+                        "type": "default",
+                        "value": {
+                            "action": "edit_date",
+                            "record_id": task_record_id,
+                            "table_id": task_table_id
+                        }
+                    },
+                    {
+                        "tag": "button",
+                        "text": {"tag": "plain_text", "content": "📝 备注"},
+                        "type": "default",
+                        "value": {
+                            "action": "edit_remark",
+                            "record_id": task_record_id,
+                            "table_id": task_table_id
+                        }
+                    }
+                ]
 
-        elements.append({
-            "tag": "action",
-            "actions": actions
-        })
-        elements.append({"tag": "hr"})
+            elements.append({
+                "tag": "action",
+                "actions": actions
+            })
+            elements.append({"tag": "hr"})
+
     # 返回按钮
     elements.append({
         "tag": "action",
@@ -239,7 +282,7 @@ def build_task_list_card(today: date, category: str, tasks: List[Dict]) -> Dict:
         "header": {
             "title": {
                 "tag": "plain_text",
-                "content": f"📋 研发日报 - {category}"
+                "content": f"📋 {category}"
             },
             "template": "blue"
         },
@@ -247,10 +290,9 @@ def build_task_list_card(today: date, category: str, tasks: List[Dict]) -> Dict:
     }
 
 
-def build_form_card(title: str, form_type: str, record_id: str, table_id: str, fields: List[Dict]) -> Dict:
+def build_form_card(title: str, form_type: str, record_id: str, table_id: str, fields: List[Dict] = None) -> Dict:
     """
     构建表单卡片（用于修改时间和备注）
-    fields 格式: [{"label": "...", "name": "...", "type": "date|text", "value": "..."}]
     """
     elements = [
         {
@@ -259,35 +301,38 @@ def build_form_card(title: str, form_type: str, record_id: str, table_id: str, f
                 "tag": "lark_md",
                 "content": f"**{title}**"
             }
-        }
+        },
+        {"tag": "hr"}
     ]
 
-    for field in fields:
-        # 使用 .get() 并设置默认值，避免 KeyError
-        field_label = field.get("label", "")
-        field_name = field.get("name", "")
-        field_type = field.get("type", "text")
-
+    if form_type == "save_date":
+        # 日期输入
         elements.append({
             "tag": "div",
             "text": {
                 "tag": "lark_md",
-                "content": field_label
+                "content": "计划完成日期"
             }
         })
-
-        if field_type == "date":
-            elements.append({
-                "tag": "input",
-                "name": field_name,
-                "label": {"tag": "plain_text", "content": field_label}
-            })
-        else:
-            elements.append({
-                "tag": "textarea",
-                "name": field_name,
-                "placeholder": {"tag": "plain_text", "content": field.get("placeholder", "")}
-            })
+        elements.append({
+            "tag": "input",
+            "name": "date",
+            "label": {"tag": "plain_text", "content": "选择日期"}
+        })
+    else:
+        # 备注输入
+        elements.append({
+            "tag": "div",
+            "text": {
+                "tag": "lark_md",
+                "content": "备注内容"
+            }
+        })
+        elements.append({
+            "tag": "textarea",
+            "name": "remark",
+            "placeholder": {"tag": "plain_text", "content": "请输入备注..."}
+        })
 
     elements.append({"tag": "hr"})
     elements.append({
@@ -409,38 +454,102 @@ def build_defect_card(today: date, defects: List[Dict]) -> Dict:
         for defect in defects:
             priority = defect.get("priority", "")
             status = defect.get("status", "")
+            name = defect.get("name", "未命名")
+            user = defect.get("user", "未分配")
+            record_id = defect.get("record_id", "")
+            table_id = defect.get("table_id", "")
 
             elements.append({
                 "tag": "div",
                 "text": {
                     "tag": "lark_md",
-                    "content": f"**{defect.get('name', '未命名')}**\n👤 {defect.get('user', '未分配')} | {priority} | {status}"
+                    "content": f"**{name}**\n👤 {user} | {priority} | 状态: {status}"
                 }
             })
 
-            # 操作按钮
-            actions = [
-                {
-                    "tag": "button",
-                    "text": {"tag": "plain_text", "content": "✓ 关闭"},
-                    "type": "primary",
-                    "value": {
-                        "action": "close_defect",
-                        "record_id": defect.get("record_id", ""),
-                        "table_id": defect.get("table_id", "")
+            # 根据状态显示不同按钮
+            if status in ("待处理", "新建", "重新打开"):
+                # 待处理状态：可以接受
+                actions = [
+                    {
+                        "tag": "button",
+                        "text": {"tag": "plain_text", "content": "✓ 接受"},
+                        "type": "primary",
+                        "value": {
+                            "action": "defect_accept",
+                            "record_id": record_id,
+                            "table_id": table_id
+                        }
+                    },
+                    {
+                        "tag": "button",
+                        "text": {"tag": "plain_text", "content": "📝 备注"},
+                        "type": "default",
+                        "value": {
+                            "action": "edit_remark",
+                            "record_id": record_id,
+                            "table_id": table_id
+                        }
                     }
-                },
-                {
-                    "tag": "button",
-                    "text": {"tag": "plain_text", "content": "📝 备注"},
-                    "type": "default",
-                    "value": {
-                        "action": "edit_defect_remark",
-                        "record_id": defect.get("record_id", ""),
-                        "table_id": defect.get("table_id", "")
+                ]
+            elif status in ("处理中", "已确认", "修复中"):
+                # 处理中状态：可以关闭
+                actions = [
+                    {
+                        "tag": "button",
+                        "text": {"tag": "plain_text", "content": "🏁 关闭"},
+                        "type": "danger",
+                        "value": {
+                            "action": "defect_close",
+                            "record_id": record_id,
+                            "table_id": table_id
+                        }
+                    },
+                    {
+                        "tag": "button",
+                        "text": {"tag": "plain_text", "content": "↩️ 重新打开"},
+                        "type": "default",
+                        "value": {
+                            "action": "defect_reopen",
+                            "record_id": record_id,
+                            "table_id": table_id
+                        }
+                    },
+                    {
+                        "tag": "button",
+                        "text": {"tag": "plain_text", "content": "📝 备注"},
+                        "type": "default",
+                        "value": {
+                            "action": "edit_remark",
+                            "record_id": record_id,
+                            "table_id": table_id
+                        }
                     }
-                }
-            ]
+                ]
+            else:
+                # 其他状态：可以重新打开
+                actions = [
+                    {
+                        "tag": "button",
+                        "text": {"tag": "plain_text", "content": "↩️ 重新打开"},
+                        "type": "default",
+                        "value": {
+                            "action": "defect_reopen",
+                            "record_id": record_id,
+                            "table_id": table_id
+                        }
+                    },
+                    {
+                        "tag": "button",
+                        "text": {"tag": "plain_text", "content": "📝 备注"},
+                        "type": "default",
+                        "value": {
+                            "action": "edit_remark",
+                            "record_id": record_id,
+                            "table_id": table_id
+                        }
+                    }
+                ]
 
             elements.append({
                 "tag": "action",
@@ -462,7 +571,7 @@ def build_defect_card(today: date, defects: List[Dict]) -> Dict:
                 "tag": "button",
                 "text": {"tag": "plain_text", "content": "🔄 刷新"},
                 "type": "default",
-                "value": {"action": "refresh"}
+                "value": {"action": "show_defects"}
             }
         ]
     })

@@ -14,6 +14,7 @@ from card_templates import (
     build_defect_card,
     build_success_card,
     build_error_card,
+    build_form_card,
 )
 
 
@@ -308,3 +309,6 @@ class CardBuilder:
 
     def build_error_card(self, message: str) -> Dict:
         return build_error_card(message)
+
+    def build_form_card(self, title: str, form_type: str, record_id: str, table_id: str) -> Dict:
+        return build_form_card(title, form_type, record_id, table_id)

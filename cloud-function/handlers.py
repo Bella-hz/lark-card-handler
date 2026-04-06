@@ -26,14 +26,31 @@ class CallbackHandler:
         "tblsJ5woCFfYgrNi": "处理人",
     }
 
-    # 表ID到状态字段的映射（关闭时间需要动态设置）
+    # 表ID到状态字段的映射（开始时间/完成时间需要动态设置）
     TABLE_STATUS_FIELDS = {
-        "tblo5L10rWTWjKf9": {"状态": "已完成"},
-        "tblpajWitnEuY3G5": {"状态": "处理完成"},
-        "tblS8qBWisBv6O9N": {"状态": "已完成"},
-        "tbl98ZxWyCcgounb": {"任务状态": "提测通过"},
-        "tblm13vKwIfwYBt0": {"任务状态": "已完成测试"},
-        "tblsJ5woCFfYgrNi": {"当前状态": "已关闭"},  # 关闭时间需要动态设置
+        "tblo5L10rWTWjKf9": {"状态": "已完成", "实际完成时间": None},
+        "tblpajWitnEuY3G5": {"状态": "处理完成", "实际完成时间": None},
+        "tblS8qBWisBv6O9N": {"状态": "已完成", "实际完成时间": None},
+        "tbl98ZxWyCcgounb": {"任务状态": "提测通过", "实际完成时间": None},
+        "tblm13vKwIfwYBt0": {"任务状态": "已完成测试", "实际完成时间": None},
+        "tblsJ5woCFfYgrNi": {"当前状态": "已关闭", "关闭时间": None},
+    }
+
+    # 进行中状态
+    IN_PROGRESS_STATUS = {
+        "tblo5L10rWTWjKf9": "进行中",
+        "tblpajWitnEuY3G5": "处理中",
+        "tblS8qBWisBv6O9N": "进行中",
+        "tbl98ZxWyCcgounb": "待测试",
+        "tblm13vKwIfwYBt0": "测试中",
+    }
+
+    # 缺陷状态流转
+    DEFECT_STATUS_FIELDS = {
+        "tblsJ5woCFfYgrNi": {"当前状态": "已关闭", "关闭时间": None},
+    }
+    DEFECT_IN_PROGRESS_STATUS = {
+        "tblsJ5woCFfYgrNi": {"当前状态": "处理中"},
     }
 
     def __init__(self, app_id: str, app_secret: str, base_token: str):
@@ -53,36 +70,110 @@ class CallbackHandler:
             table_id = action_data.get("table_id")
             message_id = action_data.get("message_id", "")
 
+            logging.info(f"handle_click: action={action}, record_id={record_id}, table_id={table_id}")
+
+            # 概览按钮
             if action == "show_overview":
                 return self.builder.build_overview_card(), message_id
 
+            # 任务列表按钮
             elif action == "show_completed":
                 tasks = self.builder.get_completed_tasks()
+                logging.info(f"show_completed: got {len(tasks)} tasks")
                 return self.builder.build_task_list_card("今日完成", tasks), message_id
 
             elif action == "show_in_progress":
                 tasks = self.builder.get_in_progress_tasks()
+                logging.info(f"show_in_progress: got {len(tasks)} tasks")
                 return self.builder.build_task_list_card("进行中", tasks), message_id
 
             elif action == "show_overdue":
                 tasks = self.builder.get_overdue_tasks()
+                logging.info(f"show_overdue: got {len(tasks)} tasks")
                 return self.builder.build_task_list_card("逾期任务", tasks), message_id
 
             elif action == "show_defects":
                 defects = self.builder.get_pending_defects()
+                logging.info(f"show_defects: got {len(defects)} defects")
                 return self.builder.build_defect_card(defects), message_id
 
-            elif action == "complete":
-                # 权限检查
+            # 任务操作
+            elif action == "start_task":
+                # 开始任务 - 更新开始时间
                 if not self._check_permission(record_id, table_id, user_id):
                     return self.builder.build_error_card("您不是该任务负责人，无法操作"), message_id
-
-                # 执行状态变更
-                success = self._mark_complete(record_id, table_id)
+                success = self._mark_task_start(record_id, table_id)
                 if success:
-                    return self.builder.build_success_card("任务已标记完成"), message_id
+                    return self.builder.build_success_card("任务已开始"), message_id
                 else:
                     return self.builder.build_error_card("操作失败，请重试"), message_id
+
+            elif action == "complete_task":
+                # 完成任务 - 更新完成时间
+                if not self._check_permission(record_id, table_id, user_id):
+                    return self.builder.build_error_card("您不是该任务负责人，无法操作"), message_id
+                success = self._mark_task_complete(record_id, table_id)
+                if success:
+                    return self.builder.build_success_card("任务已完成"), message_id
+                else:
+                    return self.builder.build_error_card("操作失败，请重试"), message_id
+
+            elif action == "complete":
+                # 兼容旧按钮
+                if not self._check_permission(record_id, table_id, user_id):
+                    return self.builder.build_error_card("您不是该任务负责人，无法操作"), message_id
+                success = self._mark_task_complete(record_id, table_id)
+                if success:
+                    return self.builder.build_success_card("任务已完成"), message_id
+                else:
+                    return self.builder.build_error_card("操作失败，请重试"), message_id
+
+            elif action == "edit_date":
+                # 跳转到修改时间表单
+                return self.builder.build_form_card("修改计划时间", "save_date", record_id, table_id), message_id
+
+            elif action == "edit_remark":
+                # 跳转到备注表单
+                return self.builder.build_form_card("添加备注", "save_remark", record_id, table_id), message_id
+
+            # 缺陷操作
+            elif action == "defect_accept":
+                # 缺陷开始处理
+                if not self._check_permission(record_id, table_id, user_id):
+                    return self.builder.build_error_card("您不是该缺陷处理人，无法操作"), message_id
+                success = self._mark_defect_accept(record_id, table_id)
+                if success:
+                    return self.builder.build_success_card("已接受缺陷处理"), message_id
+                else:
+                    return self.builder.build_error_card("操作失败，请重试"), message_id
+
+            elif action == "defect_close":
+                # 缺陷关闭
+                if not self._check_permission(record_id, table_id, user_id):
+                    return self.builder.build_error_card("您不是该缺陷处理人，无法操作"), message_id
+                success = self._mark_defect_close(record_id, table_id)
+                if success:
+                    return self.builder.build_success_card("缺陷已关闭"), message_id
+                else:
+                    return self.builder.build_error_card("操作失败，请重试"), message_id
+
+            elif action == "defect_reopen":
+                # 缺陷重新打开
+                if not self._check_permission(record_id, table_id, user_id):
+                    return self.builder.build_error_card("您不是该缺陷处理人，无法操作"), message_id
+                success = self._mark_defect_reopen(record_id, table_id)
+                if success:
+                    return self.builder.build_success_card("缺陷已重新打开"), message_id
+                else:
+                    return self.builder.build_error_card("操作失败，请重试"), message_id
+
+            elif action == "save_date":
+                # 保存计划时间
+                return self.builder.build_success_card("计划时间已更新"), message_id
+
+            elif action == "save_remark":
+                # 保存备注
+                return self.builder.build_success_card("备注已更新"), message_id
 
             elif action == "refresh":
                 return self.builder.build_overview_card(), message_id
@@ -113,7 +204,7 @@ class CallbackHandler:
         # 构建更新字段
         fields = {}
         if form_data.get("date"):
-            fields["期望完成时间"] = form_data["date"]  # 统一写期望时间字段
+            fields["期望完成时间"] = form_data["date"]
         if form_data.get("remark"):
             fields["备注"] = form_data["remark"]
 
@@ -125,10 +216,15 @@ class CallbackHandler:
             self.bitable.update_record(table_id, record_id, fields)
             return self.builder.build_success_card("排期信息已更新"), message_id
         except Exception as e:
+            logging.error(f"handle_form_submit error: {e}")
             return self.builder.build_error_card(f"更新失败: {str(e)}"), message_id
 
     def _check_permission(self, record_id: str, table_id: str, user_id: str) -> bool:
         """检查用户是否有权限操作该任务"""
+        if not record_id or not table_id:
+            logging.warning(f"_check_permission: missing record_id or table_id")
+            return False
+
         # 获取记录信息
         try:
             record = self.bitable.get_record(table_id, record_id)
@@ -149,30 +245,81 @@ class CallbackHandler:
         else:
             owner_ids = []
 
-        return user_id in owner_ids
+        result = user_id in owner_ids
+        logging.info(f"_check_permission: user_id={user_id}, owner_ids={owner_ids}, result={result}")
+        return result
 
     def _get_owner_field(self, table_id: str) -> str:
         """根据表 ID 返回负责人字段名"""
         return self.TABLE_OWNER_FIELDS.get(table_id, "负责人")
 
-    def _mark_complete(self, record_id: str, table_id: str) -> bool:
+    def _mark_task_start(self, record_id: str, table_id: str) -> bool:
+        """标记任务开始"""
+        today = date.today().isoformat()
+        in_progress = self.IN_PROGRESS_STATUS.get(table_id, {})
+        fields = dict(in_progress)
+        if "实际开始时间" not in fields:
+            fields["实际开始时间"] = today
+
+        try:
+            self.bitable.update_record(table_id, record_id, fields)
+            logging.info(f"_mark_task_start: success, record_id={record_id}, table_id={table_id}")
+            return True
+        except Exception as e:
+            logging.warning(f"_mark_task_start: update_record failed, record_id={record_id}, table_id={table_id}, error: {e}")
+            return False
+
+    def _mark_task_complete(self, record_id: str, table_id: str) -> bool:
         """标记任务完成"""
         today = date.today().isoformat()
         fields = {"实际完成时间": today}
 
-        # 根据表 ID 确定状态字段 - 使用类常量
-        base_status = self.TABLE_STATUS_FIELDS.get(table_id, {})
-        if base_status:
-            # 特殊处理：tblsJ5woCFfYgrNi 需要动态设置关闭时间
-            if table_id == "tblsJ5woCFfYgrNi":
-                fields.update(base_status)
-                fields["关闭时间"] = today
-            else:
-                fields.update(base_status)
+        # 根据表 ID 确定状态字段
+        status_fields = self.TABLE_STATUS_FIELDS.get(table_id, {})
+        fields.update(status_fields)
 
         try:
             self.bitable.update_record(table_id, record_id, fields)
+            logging.info(f"_mark_task_complete: success, record_id={record_id}, table_id={table_id}")
             return True
         except Exception as e:
-            logging.warning(f"_mark_complete: update_record failed, record_id={record_id}, table_id={table_id}, error: {e}")
+            logging.warning(f"_mark_task_complete: update_record failed, record_id={record_id}, table_id={table_id}, error: {e}")
+            return False
+
+    def _mark_defect_accept(self, record_id: str, table_id: str) -> bool:
+        """接受缺陷处理"""
+        status_fields = self.DEFECT_IN_PROGRESS_STATUS.get(table_id, {})
+        fields = dict(status_fields)
+
+        try:
+            self.bitable.update_record(table_id, record_id, fields)
+            logging.info(f"_mark_defect_accept: success, record_id={record_id}, table_id={table_id}")
+            return True
+        except Exception as e:
+            logging.warning(f"_mark_defect_accept: update_record failed, record_id={record_id}, table_id={table_id}, error: {e}")
+            return False
+
+    def _mark_defect_close(self, record_id: str, table_id: str) -> bool:
+        """关闭缺陷"""
+        today = date.today().isoformat()
+        fields = {"当前状态": "已关闭", "关闭时间": today}
+
+        try:
+            self.bitable.update_record(table_id, record_id, fields)
+            logging.info(f"_mark_defect_close: success, record_id={record_id}, table_id={table_id}")
+            return True
+        except Exception as e:
+            logging.warning(f"_mark_defect_close: update_record failed, record_id={record_id}, table_id={table_id}, error: {e}")
+            return False
+
+    def _mark_defect_reopen(self, record_id: str, table_id: str) -> bool:
+        """重新打开缺陷"""
+        fields = {"当前状态": "重新打开"}
+
+        try:
+            self.bitable.update_record(table_id, record_id, fields)
+            logging.info(f"_mark_defect_reopen: success, record_id={record_id}, table_id={table_id}")
+            return True
+        except Exception as e:
+            logging.warning(f"_mark_defect_reopen: update_record failed, record_id={record_id}, table_id={table_id}, error: {e}")
             return False

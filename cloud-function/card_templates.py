@@ -394,3 +394,104 @@ def build_error_card(message: str) -> Dict:
             ]
         }
     }
+
+
+def build_defect_card(today: date, defects: List[Dict]) -> Dict:
+    """
+    构建缺陷卡片
+    defects 格式: [{"record_id": "...", "table_id": "...", "name": "...", "user": "...", "priority": "...", "status": "..."}]
+    """
+    elements = [
+        {
+            "tag": "div",
+            "text": {
+                "tag": "lark_md",
+                "content": f"**🐛 研发日报 - 缺陷列表** ({today.strftime('%Y-%m-%d')})"
+            }
+        },
+        {"tag": "hr"}
+    ]
+
+    if not defects:
+        elements.append({
+            "tag": "div",
+            "text": {
+                "tag": "lark_md",
+                "content": "暂无待处理缺陷"
+            }
+        })
+    else:
+        for defect in defects:
+            priority = defect.get("priority", "")
+            status = defect.get("status", "")
+
+            elements.append({
+                "tag": "div",
+                "text": {
+                    "tag": "lark_md",
+                    "content": f"**{defect.get('name', '未命名')}**\n👤 {defect.get('user', '未分配')} | {priority} | {status}"
+                }
+            })
+
+            # 操作按钮
+            actions = [
+                {
+                    "tag": "button",
+                    "text": {"tag": "plain_text", "content": "✓ 关闭"},
+                    "type": "primary",
+                    "value": {
+                        "action": "close_defect",
+                        "record_id": defect.get("record_id", ""),
+                        "table_id": defect.get("table_id", "")
+                    }
+                },
+                {
+                    "tag": "button",
+                    "text": {"tag": "plain_text", "content": "📝 备注"},
+                    "type": "default",
+                    "value": {
+                        "action": "edit_defect_remark",
+                        "record_id": defect.get("record_id", ""),
+                        "table_id": defect.get("table_id", "")
+                    }
+                }
+            ]
+
+            elements.append({
+                "tag": "action",
+                "actions": actions
+            })
+            elements.append({"tag": "hr"})
+
+    # 返回按钮
+    elements.append({
+        "tag": "action",
+        "actions": [
+            {
+                "tag": "button",
+                "text": {"tag": "plain_text", "content": "← 返回概览"},
+                "type": "default",
+                "value": {"action": "show_overview"}
+            },
+            {
+                "tag": "button",
+                "text": {"tag": "plain_text", "content": "🔄 刷新"},
+                "type": "default",
+                "value": {"action": "refresh"}
+            }
+        ]
+    })
+
+    return {
+        "schema": "2.0",
+        "card": {
+            "header": {
+                "title": {
+                    "tag": "plain_text",
+                    "content": "🐛 缺陷列表"
+                },
+                "template": "orange"
+            },
+            "elements": elements
+        }
+    }

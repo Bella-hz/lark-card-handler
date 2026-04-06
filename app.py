@@ -84,23 +84,13 @@ def index():
 
             logger.info(f"Returning test card for action={action_name}")
 
-            # 飞书卡片回调响应格式
-            return jsonify({
-                "msg": "ok",
-                "data": {
-                    "card": card
-                }
-            })
+            # 飞书卡片回调：直接返回卡片 JSON
+            return jsonify(card)
 
         elif action_type == "input":
             # 表单提交
             card, msg_id = handler.handle_form_submit(action_value, user_id)
-            return jsonify({
-                "msg": "ok",
-                "data": {
-                    "card": card
-                }
-            })
+            return jsonify(card)
 
         else:
             return jsonify({"msg": "OK"})

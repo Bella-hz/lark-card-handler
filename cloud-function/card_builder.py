@@ -289,6 +289,12 @@ class CardBuilder:
                     })
         return defects
 
+    def build_overview_card(self) -> Dict:
+        """构建概览卡片"""
+        today = self._get_today()
+        overview = self.get_overview_stats()
+        return build_overview_card(today, overview)
+
     def build_task_list_card(self, category: str, tasks: List[Dict]) -> Dict:
         today = self._get_today()
         return build_task_list_card(today, category, tasks)

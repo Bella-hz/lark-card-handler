@@ -71,7 +71,14 @@ def index():
 @app.route("/health", methods=["GET"])
 def health():
     """健康检查"""
-    return jsonify({"status": "ok"})
+    return jsonify({
+        "status": "ok",
+        "env": {
+            "APP_ID": "***" if APP_ID else "EMPTY",
+            "APP_SECRET": "***" if APP_SECRET else "EMPTY",
+            "BASE_TOKEN": "***" if BASE_TOKEN else "EMPTY"
+        }
+    })
 
 
 if __name__ == "__main__":

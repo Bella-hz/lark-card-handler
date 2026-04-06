@@ -36,98 +36,97 @@ def build_overview_card(today: date, overview: Dict, message_id: str = "") -> Di
     defect_closed = overview.get("defect_closed", 0)
 
     return {
-        "card": {
-            "schema": "2.0",
-            "header": {
-                "title": {
-                    "tag": "plain_text",
-                    "content": f"📋 研发日报 {today.strftime('%Y-%m-%d')}"
-                },
-                "template": "blue"
+        "config": {"wide_screen_mode": True},
+        "schema": "2.0",
+        "header": {
+            "title": {
+                "tag": "plain_text",
+                "content": f"📋 研发日报 {today.strftime('%Y-%m-%d')}"
             },
-            "elements": [
-                {
-                    "tag": "div",
-                    "text": {
-                        "tag": "lark_md",
-                        "content": "**📊 概览**"
-                    }
-                },
-                {
-                    "tag": "div",
-                    "text": {
-                        "tag": "lark_md",
-                        "content": (
-                            f"- 开发任务：进行中 {dev_in_progress} "
-                            f"| 今日完成 {dev_completed} "
-                            f"| 逾期 {dev_overdue}\n"
-                            f"- 测试任务：进行中 {test_in_progress} "
-                            f"| 今日完成 {test_completed} "
-                            f"| 逾期 {test_overdue}\n"
-                            f"- 缺陷问题：待处理 {defect_pending} "
-                            f"| 处理中 {defect_processing} "
-                            f"| 今日关闭 {defect_closed}"
-                        )
-                    }
-                },
-                {"tag": "hr"},
-                {
-                    "tag": "action",
-                    "actions": [
-                        {
-                            "tag": "button",
-                            "text": {
-                                "tag": "plain_text",
-                                "content": f"🔴 逾期 ({dev_overdue + test_overdue})"
-                            },
-                            "type": "primary",
-                            "value": {"action": "show_overdue"},
-                            "confirm": {
-                                "title": {"tag": "plain_text", "content": "查看逾期任务"},
-                                "text": {"tag": "plain_text", "content": "即将加载逾期任务列表..."}
-                            }
-                        },
-                        {
-                            "tag": "button",
-                            "text": {
-                                "tag": "plain_text",
-                                "content": f"✅ 今日完成 ({dev_completed + test_completed})"
-                            },
-                            "type": "primary",
-                            "value": {"action": "show_completed"},
-                        },
-                        {
-                            "tag": "button",
-                            "text": {
-                                "tag": "plain_text",
-                                "content": f"🔄 进行中 ({dev_in_progress + test_in_progress})"
-                            },
-                            "type": "primary",
-                            "value": {"action": "show_in_progress"},
-                        },
-                        {
-                            "tag": "button",
-                            "text": {
-                                "tag": "plain_text",
-                                "content": f"🐛 缺陷 ({defect_pending + defect_processing})"
-                            },
-                            "type": "primary",
-                            "value": {"action": "show_defects"},
-                        },
-                    ]
-                },
-                {"tag": "hr"},
-                {
-                    "tag": "note",
-                    "elements": [
-                        {
-                            "tag": "plain_text",
-                            "content": f"本卡片由机器人自动生成 | 最后更新: {today.strftime('%H:%M')}"
-                        }
-                    ]
+            "template": "blue"
+        },
+        "elements": [
+            {
+                "tag": "div",
+                "text": {
+                    "tag": "lark_md",
+                    "content": "**📊 概览**"
                 }
-            ]
-        }
+            },
+            {
+                "tag": "div",
+                "text": {
+                    "tag": "lark_md",
+                    "content": (
+                        f"- 开发任务：进行中 {dev_in_progress} "
+                        f"| 今日完成 {dev_completed} "
+                        f"| 逾期 {dev_overdue}\n"
+                        f"- 测试任务：进行中 {test_in_progress} "
+                        f"| 今日完成 {test_completed} "
+                        f"| 逾期 {test_overdue}\n"
+                        f"- 缺陷问题：待处理 {defect_pending} "
+                        f"| 处理中 {defect_processing} "
+                        f"| 今日关闭 {defect_closed}"
+                    )
+                }
+            },
+            {"tag": "hr"},
+            {
+                "tag": "action",
+                "actions": [
+                    {
+                        "tag": "button",
+                        "text": {
+                            "tag": "plain_text",
+                            "content": f"🔴 逾期 ({dev_overdue + test_overdue})"
+                        },
+                        "type": "primary",
+                        "value": {"action": "show_overdue"},
+                        "confirm": {
+                            "title": {"tag": "plain_text", "content": "查看逾期任务"},
+                            "text": {"tag": "plain_text", "content": "即将加载逾期任务列表..."}
+                        }
+                    },
+                    {
+                        "tag": "button",
+                        "text": {
+                            "tag": "plain_text",
+                            "content": f"✅ 今日完成 ({dev_completed + test_completed})"
+                        },
+                        "type": "primary",
+                        "value": {"action": "show_completed"},
+                    },
+                    {
+                        "tag": "button",
+                        "text": {
+                            "tag": "plain_text",
+                            "content": f"🔄 进行中 ({dev_in_progress + test_in_progress})"
+                        },
+                        "type": "primary",
+                        "value": {"action": "show_in_progress"},
+                    },
+                    {
+                        "tag": "button",
+                        "text": {
+                            "tag": "plain_text",
+                            "content": f"🐛 缺陷 ({defect_pending + defect_processing})"
+                        },
+                        "type": "primary",
+                        "value": {"action": "show_defects"},
+                    },
+                ]
+            },
+            {"tag": "hr"},
+            {
+                "tag": "note",
+                "elements": [
+                    {
+                        "tag": "plain_text",
+                        "content": f"本卡片由机器人自动生成 | 最后更新: {today.strftime('%H:%M')}"
+                    }
+                ]
+            }
+        ]
     }
 
 
@@ -239,17 +238,16 @@ def build_task_list_card(today: date, category: str, tasks: List[Dict]) -> Dict:
     })
 
     return {
-        "card": {
-            "schema": "2.0",
-            "header": {
-                "title": {
-                    "tag": "plain_text",
-                    "content": f"📋 研发日报 - {category}"
-                },
-                "template": "blue"
+        "config": {"wide_screen_mode": True},
+        "schema": "2.0",
+        "header": {
+            "title": {
+                "tag": "plain_text",
+                "content": f"📋 研发日报 - {category}"
             },
-            "elements": elements
-        }
+            "template": "blue"
+        },
+        "elements": elements
     }
 
 
@@ -319,80 +317,77 @@ def build_form_card(title: str, form_type: str, record_id: str, table_id: str, f
     })
 
     return {
-        "card": {
-            "schema": "2.0",
-            "header": {
-                "title": {"tag": "plain_text", "content": title},
-                "template": "blue"
-            },
-            "elements": elements
-        }
+        "config": {"wide_screen_mode": True},
+        "schema": "2.0",
+        "header": {
+            "title": {"tag": "plain_text", "content": title},
+            "template": "blue"
+        },
+        "elements": elements
     }
 
 
 def build_success_card(message: str) -> Dict:
     """构建成功提示卡片"""
     return {
-        "card": {
-            "schema": "2.0",
-            "header": {
-                "title": {"tag": "plain_text", "content": "✅ 操作成功"},
-                "template": "green"
-            },
-            "elements": [
-                {
-                    "tag": "div",
-                    "text": {
-                        "tag": "lark_md",
-                        "content": message
-                    }
-                },
-                {
-                    "tag": "action",
-                    "actions": [
-                        {
-                            "tag": "button",
-                            "text": {"tag": "plain_text", "content": "← 返回概览"},
-                            "type": "default",
-                            "value": {"action": "show_overview"}
-                        }
-                    ]
+        "config": {"wide_screen_mode": True},
+        "schema": "2.0",
+        "header": {
+            "title": {"tag": "plain_text", "content": "✅ 操作成功"},
+            "template": "green"
+        },
+        "elements": [
+            {
+                "tag": "div",
+                "text": {
+                    "tag": "lark_md",
+                    "content": message
                 }
-            ]
-        }
+            },
+            {
+                "tag": "action",
+                "actions": [
+                    {
+                        "tag": "button",
+                        "text": {"tag": "plain_text", "content": "← 返回概览"},
+                        "type": "default",
+                        "value": {"action": "show_overview"}
+                    }
+                ]
+            }
+        ]
     }
 
 
 def build_error_card(message: str) -> Dict:
     """构建错误提示卡片"""
     return {
-        "card": {
-            "schema": "2.0",
-            "header": {
-                "title": {"tag": "plain_text", "content": "❌ 操作失败"},
-                "template": "red"
-            },
-            "elements": [
-                {
-                    "tag": "div",
-                    "text": {
-                        "tag": "lark_md",
-                        "content": message
-                    }
-                },
-                {
-                    "tag": "action",
-                    "actions": [
-                        {
-                            "tag": "button",
-                            "text": {"tag": "plain_text", "content": "← 返回"},
-                            "type": "default",
-                            "value": {"action": "show_overview"}
-                        }
-                    ]
+        "config": {"wide_screen_mode": True},
+        "schema": "2.0",
+        "header": {
+            "title": {"tag": "plain_text", "content": "❌ 操作失败"},
+            "template": "red"
+        },
+        "elements": [
+            {
+                "tag": "div",
+                "text": {
+                    "tag": "lark_md",
+                    "content": message
                 }
-            ]
-        }
+            },
+            {
+                "tag": "action",
+                "actions": [
+                    {
+                        "tag": "button",
+                        "text": {"tag": "plain_text", "content": "← 返回"},
+                        "type": "default",
+                        "value": {"action": "show_overview"}
+                    }
+                ]
+            }
+        ]
     }
 
 
@@ -483,15 +478,14 @@ def build_defect_card(today: date, defects: List[Dict]) -> Dict:
     })
 
     return {
-        "card": {
-            "schema": "2.0",
-            "header": {
-                "title": {
-                    "tag": "plain_text",
-                    "content": "🐛 缺陷列表"
-                },
-                "template": "orange"
+        "config": {"wide_screen_mode": True},
+        "schema": "2.0",
+        "header": {
+            "title": {
+                "tag": "plain_text",
+                "content": "🐛 缺陷列表"
             },
-            "elements": elements
-        }
+            "template": "orange"
+        },
+        "elements": elements
     }

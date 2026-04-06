@@ -55,23 +55,27 @@ def index():
 
         handler = CallbackHandler(APP_ID, APP_SECRET, BASE_TOKEN)
 
-        # 提取事件类型
-        action_type = body.get("action", {}).get("action_type", "")
-        user_id = body.get("user", {}).get("user_id", "")
+        # 提取事件数据 - 飞书事件在 event 字段中
+        event = body.get("event", {})
+        action = event.get("action", {})
+        operator = event.get("operator", {})
 
-        if action_type == "click":
-            action_data = json.loads(body.get("action", {}).get("data", {}).get("value", "{}"))
-            card, msg_id = handler.handle_click(action_data, user_id)
+        action_type = action.get("tag", "")  # button, input, etc.
+        action_value = action.get("value", {})
+        user_id = operator.get("open_id", "")
+
+        logger.info(f"Parsed: action_type={action_type}, action_value={action_value}, user_id={user_id}")
+
+        if action_type == "button":
+            # 按钮点击
+            card, msg_id = handler.handle_click(action_value, user_id)
+            logger.info(f"Returning card for button click")
             return jsonify(card)
 
-        elif action_type == "submit":
-            form_data = body.get("action", {}).get("data", {})
-            card, msg_id = handler.handle_form_submit(form_data, user_id)
-            return jsonify(card)
-
-        elif action_type == "get_overview":
-            # 获取概览卡片
-            card = handler.builder.get_overview_card()
+        elif action_type == "input":
+            # 表单提交
+            # action.value contains the form data
+            card, msg_id = handler.handle_form_submit(action_value, user_id)
             return jsonify(card)
 
         else:

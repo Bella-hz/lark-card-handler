@@ -62,9 +62,27 @@ def index():
         logger.info(f"Parsed: action_type={action_type}, action_value={action_value}, user_id={user_id}")
 
         if action_type == "button":
-            # 按钮点击
-            card, msg_id = handler.handle_click(action_value, user_id)
-            logger.info(f"Returning card for button click, msg_id={msg_id}")
+            # 按钮点击 - 获取卡片
+            action_name = action_value.get("action", "")
+
+            # 简单测试：直接返回概览卡片，不调用飞书 API
+            from datetime import date
+            from card_templates import build_overview_card
+            today = date.today()
+            overview = {
+                "dev_in_progress": 5,
+                "dev_completed": 2,
+                "dev_overdue": 1,
+                "test_in_progress": 3,
+                "test_completed": 1,
+                "test_overdue": 0,
+                "defect_pending": 2,
+                "defect_processing": 1,
+                "defect_closed": 0,
+            }
+            card = build_overview_card(today, overview)
+
+            logger.info(f"Returning test card for action={action_name}")
 
             # 飞书卡片回调响应格式
             return jsonify({

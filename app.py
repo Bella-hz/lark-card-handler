@@ -31,23 +31,18 @@ def index():
     """处理所有请求"""
     # 飞书 URL 验证请求 - 支持 GET 和 POST
     challenge = request.args.get("challenge", "")
-    if not challenge:
-        # POST 请求中可能有 challenge 在 body 中
-        try:
-            body = request.get_json(silent=True) or {}
-            challenge = body.get("challenge", "")
-        except:
-            challenge = ""
+
+    if request.method == "OPTIONS":
+        return "", 204
+
+    # 只解析一次 body
+    body = request.get_json(force=True) or {}
 
     if challenge:
         logger.info(f"Feishu URL verification: challenge={challenge}")
         return jsonify({"challenge": challenge})
 
-    if request.method == "OPTIONS":
-        return "", 204
-
     try:
-        body = request.get_json() or {}
         logger.info(f"Received event: {body}")
 
         # 导入处理模块

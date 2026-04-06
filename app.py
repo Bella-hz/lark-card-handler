@@ -54,23 +54,43 @@ def index():
         event = body.get("event", {})
         action = event.get("action", {})
         operator = event.get("operator", {})
+        context = event.get("context", {})
 
         action_type = action.get("tag", "")  # button, input, etc.
         action_value = action.get("value", {})
         user_id = operator.get("open_id", "")
+        open_message_id = context.get("open_message_id", "")
+        open_chat_id = context.get("open_chat_id", "")
 
         logger.info(f"Parsed: action_type={action_type}, action_value={action_value}, user_id={user_id}")
+        logger.info(f"Context: message_id={open_message_id}, chat_id={open_chat_id}")
 
         if action_type == "button":
-            # 按钮点击
-            action_name = action_value.get("action", "")
-            logger.info(f"Button clicked: {action_name}")
+            # 按钮点击 - 获取对应的卡片内容
+            card, msg_id = handler.handle_click(action_value, user_id)
 
-            # 简单返回确认
+            # 如果有消息 ID 和聊天 ID，发送新卡片
+            if open_message_id and open_chat_id:
+                try:
+                    handler.updater.reply_card(open_message_id, card, open_chat_id)
+                    logger.info("Sent reply card to chat")
+                except Exception as e:
+                    logger.error(f"Failed to reply card: {e}")
+
             return jsonify({"msg": "ok"})
 
         elif action_type == "input":
-            # 表单提交
+            # 表单提交 - action_value 包含表单数据
+            card, msg_id = handler.handle_form_submit(action_value, user_id)
+
+            # 如果有消息 ID 和聊天 ID，发送新卡片
+            if open_message_id and open_chat_id:
+                try:
+                    handler.updater.reply_card(open_message_id, card, open_chat_id)
+                    logger.info("Sent reply card to chat")
+                except Exception as e:
+                    logger.error(f"Failed to reply card: {e}")
+
             return jsonify({"msg": "ok"})
 
         else:
@@ -92,6 +112,7 @@ def health():
             "BASE_TOKEN": "***" if BASE_TOKEN else "EMPTY"
         }
     })
+
 
 @app.route("/test", methods=["GET", "POST"])
 def test():

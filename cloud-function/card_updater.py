@@ -64,42 +64,53 @@ class CardUpdater:
         except Exception as e:
             raise RuntimeError(f"Failed to update card: {e}") from e
 
-    def reply_card(self, message_id: str, card_content: Dict) -> Dict:
+    def reply_card(self, message_id: str, card_content: Dict, chat_id: str = None) -> Dict:
         """
         在原卡片下回复新卡片（替换内容）
+        message_id: 原消息 ID
+        card_content: 新的卡片 JSON
+        chat_id: 聊天 ID（如果已知道可以直接传入）
         """
-        # 获取原消息所在的聊天 ID
-        url = f"https://open.feishu.cn/open-apis/im/v1/messages/{message_id}"
-        headers = {
-            "Authorization": f"Bearer {self.access_token}"
-        }
-        req = urllib.request.Request(url, headers=headers)
-        try:
-            with urllib.request.urlopen(req) as resp:
-                msg_info = json.loads(resp.read())
-                chat_id = msg_info.get("data", {}).get("chat_id")
-                if not chat_id:
-                    raise ValueError("chat_id not found in message info")
-        except ValueError:
-            raise
-        except Exception as e:
-            raise RuntimeError(f"Failed to get message info: {e}") from e
+        # 如果没有传入 chat_id，尝试从 message_id 获取
+        if not chat_id:
+            url = f"https://open.feishu.cn/open-apis/im/v1/messages/{message_id}"
+            headers = {
+                "Authorization": f"Bearer {self.access_token}"
+            }
+            req = urllib.request.Request(url, headers=headers)
+            try:
+                with urllib.request.urlopen(req) as resp:
+                    msg_info = json.loads(resp.read())
+                    chat_id = msg_info.get("data", {}).get("chat_id")
+                    if not chat_id:
+                        raise ValueError("chat_id not found in message info")
+            except ValueError:
+                raise
+            except Exception as e:
+                raise RuntimeError(f"Failed to get message info: {e}") from e
 
-        # 发送新卡片替换
+        # 发送新卡片
         new_body = {
             "receive_id": chat_id,
             "msg_type": "interactive",
             "content": json.dumps(card_content)
         }
         send_url = "https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id"
+        headers = {
+            "Authorization": f"Bearer {self.access_token}",
+            "Content-Type": "application/json"
+        }
         send_req = urllib.request.Request(
             send_url,
             data=json.dumps(new_body).encode(),
-            headers={**headers, "Content-Type": "application/json"},
+            headers=headers,
             method="POST"
         )
         try:
             with urllib.request.urlopen(send_req) as resp:
-                return json.loads(resp.read())
+                result = json.loads(resp.read())
+                if result.get("code") and result.get("code") != 0:
+                    raise RuntimeError(f"API error: code={result.get('code')}, msg={result.get('msg')}")
+                return result
         except Exception as e:
             raise RuntimeError(f"Failed to send reply card: {e}") from e

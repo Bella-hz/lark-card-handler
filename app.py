@@ -69,14 +69,15 @@ def index():
         if action_type == "button":
             # 按钮点击
             card, msg_id = handler.handle_click(action_value, user_id)
-            logger.info(f"Returning card for button click")
-            return jsonify(card)
+            logger.info(f"Returning card for button click, msg_id={msg_id}")
+
+            # 飞书卡片回调需要返回 card JSON
+            return jsonify(card), 200, {"Content-Type": "application/json"}
 
         elif action_type == "input":
             # 表单提交
-            # action.value contains the form data
             card, msg_id = handler.handle_form_submit(action_value, user_id)
-            return jsonify(card)
+            return jsonify(card), 200, {"Content-Type": "application/json"}
 
         else:
             return jsonify({"msg": "OK"})

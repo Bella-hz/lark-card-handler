@@ -6,11 +6,20 @@
 
 import json
 import logging
+import os
 from typing import Dict, Tuple
 from datetime import date
 from bitable_client import BitableClient, STATUS_MAPPINGS
 from card_updater import CardUpdater
 from card_builder import CardBuilder
+
+
+# 管理员用户列表（从环境变量获取，多个用逗号分隔）
+ADMIN_USERS = set()
+_env = os.environ.get("ADMIN_USERS", "")
+if _env:
+    ADMIN_USERS = set(uid.strip() for uid in _env.split(",") if uid.strip())
+logging.info(f"ADMIN_USERS: {ADMIN_USERS}")
 
 
 class CallbackHandler:
@@ -220,7 +229,12 @@ class CallbackHandler:
             return self.builder.build_error_card(f"更新失败: {str(e)}"), message_id
 
     def _check_permission(self, record_id: str, table_id: str, user_id: str) -> bool:
-        """检查用户是否有权限操作该任务"""
+        """检查用户是否有权限操作该任务（管理员或负责人）"""
+        # 首先检查是否是管理员
+        if user_id in ADMIN_USERS:
+            logging.info(f"_check_permission: user {user_id} is admin, allowed")
+            return True
+
         if not record_id or not table_id:
             logging.warning(f"_check_permission: missing record_id or table_id")
             return False

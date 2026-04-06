@@ -185,7 +185,17 @@ def build_task_list_card(today: date, category: str, tasks: List[Dict]) -> Dict:
                     },
                     {
                         "tag": "button",
-                        "text": {"tag": "plain_text", "content": "📅 改时间"},
+                        "text": {"tag": "plain_text", "content": "📅 开始时间"},
+                        "type": "default",
+                        "value": {
+                            "action": "edit_date_start",
+                            "record_id": task_record_id,
+                            "table_id": task_table_id
+                        }
+                    },
+                    {
+                        "tag": "button",
+                        "text": {"tag": "plain_text", "content": "📅 完成时间"},
                         "type": "default",
                         "value": {
                             "action": "edit_date",
@@ -305,8 +315,8 @@ def build_form_card(title: str, form_type: str, record_id: str, table_id: str, f
         {"tag": "hr"}
     ]
 
-    if form_type == "save_date":
-        # 日期输入
+    if form_type == "save_plan_end":
+        # 计划完成日期输入
         elements.append({
             "tag": "div",
             "text": {
@@ -316,7 +326,21 @@ def build_form_card(title: str, form_type: str, record_id: str, table_id: str, f
         })
         elements.append({
             "tag": "input",
-            "name": "date",
+            "name": "plan_end",
+            "label": {"tag": "plain_text", "content": "选择日期"}
+        })
+    elif form_type == "save_plan_start":
+        # 计划开始日期输入
+        elements.append({
+            "tag": "div",
+            "text": {
+                "tag": "lark_md",
+                "content": "计划开始日期"
+            }
+        })
+        elements.append({
+            "tag": "input",
+            "name": "plan_start",
             "label": {"tag": "plain_text", "content": "选择日期"}
         })
     else:

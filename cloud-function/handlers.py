@@ -138,8 +138,12 @@ class CallbackHandler:
                     return self.builder.build_error_card("操作失败，请重试"), message_id
 
             elif action == "edit_date":
-                # 跳转到修改时间表单
-                return self.builder.build_form_card("修改计划时间", "save_date", record_id, table_id), message_id
+                # 跳转到修改计划完成时间表单
+                return self.builder.build_form_card("修改计划完成时间", "save_plan_end", record_id, table_id), message_id
+
+            elif action == "edit_date_start":
+                # 跳转到修改计划开始时间表单
+                return self.builder.build_form_card("修改计划开始时间", "save_plan_start", record_id, table_id), message_id
 
             elif action == "edit_remark":
                 # 跳转到备注表单
@@ -176,9 +180,13 @@ class CallbackHandler:
                 else:
                     return self.builder.build_error_card("操作失败，请重试"), message_id
 
-            elif action == "save_date":
-                # 保存计划时间
-                return self.builder.build_success_card("计划时间已更新"), message_id
+            elif action == "save_plan_end":
+                # 保存计划完成时间
+                return self.builder.build_success_card("计划完成时间已更新"), message_id
+
+            elif action == "save_plan_start":
+                # 保存计划开始时间
+                return self.builder.build_success_card("计划开始时间已更新"), message_id
 
             elif action == "save_remark":
                 # 保存备注
@@ -200,11 +208,12 @@ class CallbackHandler:
     def handle_form_submit(self, form_data: Dict, user_id: str) -> Tuple[Dict, str]:
         """
         处理表单提交
-        form_data 格式: {"record_id": "...", "table_id": "...", "date": "...", "remark": "..."}
+        form_data 格式: Lark card input 提交的数据
         """
         record_id = form_data.get("record_id")
         table_id = form_data.get("table_id")
         message_id = form_data.get("message_id", "")
+        action = form_data.get("action", "")
 
         # 权限检查
         if not self._check_permission(record_id, table_id, user_id):
@@ -212,8 +221,13 @@ class CallbackHandler:
 
         # 构建更新字段
         fields = {}
-        if form_data.get("date"):
-            fields["期望完成时间"] = form_data["date"]
+        # 计划完成时间
+        if form_data.get("plan_end"):
+            fields["计划完成"] = form_data["plan_end"]
+        # 计划开始时间
+        if form_data.get("plan_start"):
+            fields["计划开始"] = form_data["plan_start"]
+        # 备注
         if form_data.get("remark"):
             fields["备注"] = form_data["remark"]
 
@@ -223,7 +237,8 @@ class CallbackHandler:
         # 更新记录
         try:
             self.bitable.update_record(table_id, record_id, fields)
-            return self.builder.build_success_card("排期信息已更新"), message_id
+            logging.info(f"handle_form_submit: success, action={action}, fields={fields}")
+            return self.builder.build_success_card("已更新"), message_id
         except Exception as e:
             logging.error(f"handle_form_submit error: {e}")
             return self.builder.build_error_card(f"更新失败: {str(e)}"), message_id
@@ -270,14 +285,22 @@ class CallbackHandler:
     def _mark_task_start(self, record_id: str, table_id: str) -> bool:
         """标记任务开始"""
         today = date.today().isoformat()
-        in_progress = self.IN_PROGRESS_STATUS.get(table_id, {})
-        fields = dict(in_progress)
-        if "实际开始时间" not in fields:
-            fields["实际开始时间"] = today
+        fields = {"实际开始": today}
+        # 根据表 ID 设置对应的进行中状态
+        if table_id == "tblo5L10rWTWjKf9":
+            fields["状态"] = "进行中"
+        elif table_id == "tblpajWitnEuY3G5":
+            fields["状态"] = "处理中"
+        elif table_id == "tblS8qBWisBv6O9N":
+            fields["状态"] = "进行中"
+        elif table_id == "tbl98ZxWyCcgounb":
+            fields["任务状态"] = "待测试"
+        elif table_id == "tblm13vKwIfwYBt0":
+            fields["任务状态"] = "测试中"
 
         try:
             self.bitable.update_record(table_id, record_id, fields)
-            logging.info(f"_mark_task_start: success, record_id={record_id}, table_id={table_id}")
+            logging.info(f"_mark_task_start: success, record_id={record_id}, table_id={table_id}, fields={fields}")
             return True
         except Exception as e:
             logging.warning(f"_mark_task_start: update_record failed, record_id={record_id}, table_id={table_id}, error: {e}")
@@ -286,15 +309,23 @@ class CallbackHandler:
     def _mark_task_complete(self, record_id: str, table_id: str) -> bool:
         """标记任务完成"""
         today = date.today().isoformat()
-        fields = {"实际完成时间": today}
+        fields = {"实际完成": today}
 
         # 根据表 ID 确定状态字段
-        status_fields = self.TABLE_STATUS_FIELDS.get(table_id, {})
-        fields.update(status_fields)
+        if table_id == "tblo5L10rWTWjKf9":
+            fields["状态"] = "已完成"
+        elif table_id == "tblpajWitnEuY3G5":
+            fields["状态"] = "处理完成"
+        elif table_id == "tblS8qBWisBv6O9N":
+            fields["状态"] = "已完成"
+        elif table_id == "tbl98ZxWyCcgounb":
+            fields["任务状态"] = "提测通过"
+        elif table_id == "tblm13vKwIfwYBt0":
+            fields["任务状态"] = "已完成测试"
 
         try:
             self.bitable.update_record(table_id, record_id, fields)
-            logging.info(f"_mark_task_complete: success, record_id={record_id}, table_id={table_id}")
+            logging.info(f"_mark_task_complete: success, record_id={record_id}, table_id={table_id}, fields={fields}")
             return True
         except Exception as e:
             logging.warning(f"_mark_task_complete: update_record failed, record_id={record_id}, table_id={table_id}, error: {e}")

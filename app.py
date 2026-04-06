@@ -80,6 +80,26 @@ def health():
         }
     })
 
+@app.route("/test", methods=["GET", "POST"])
+def test():
+    """测试端点 - 不调用飞书 API"""
+    from datetime import date
+    from card_templates import build_overview_card
+    today = date.today()
+    overview = {
+        "dev_in_progress": 5,
+        "dev_completed": 2,
+        "dev_overdue": 1,
+        "test_in_progress": 3,
+        "test_completed": 1,
+        "test_overdue": 0,
+        "defect_pending": 2,
+        "defect_processing": 1,
+        "defect_closed": 0,
+    }
+    card = build_overview_card(today, overview)
+    return jsonify(card)
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))

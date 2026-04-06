@@ -36,8 +36,6 @@ def build_overview_card(today: date, overview: Dict, message_id: str = "") -> Di
     defect_closed = overview.get("defect_closed", 0)
 
     return {
-        "config": {"wide_screen_mode": True},
-        "schema": "2.0",
         "header": {
             "title": {
                 "tag": "plain_text",
@@ -238,8 +236,6 @@ def build_task_list_card(today: date, category: str, tasks: List[Dict]) -> Dict:
     })
 
     return {
-        "config": {"wide_screen_mode": True},
-        "schema": "2.0",
         "header": {
             "title": {
                 "tag": "plain_text",
@@ -317,8 +313,6 @@ def build_form_card(title: str, form_type: str, record_id: str, table_id: str, f
     })
 
     return {
-        "config": {"wide_screen_mode": True},
-        "schema": "2.0",
         "header": {
             "title": {"tag": "plain_text", "content": title},
             "template": "blue"
@@ -330,8 +324,6 @@ def build_form_card(title: str, form_type: str, record_id: str, table_id: str, f
 def build_success_card(message: str) -> Dict:
     """构建成功提示卡片"""
     return {
-        "config": {"wide_screen_mode": True},
-        "schema": "2.0",
         "header": {
             "title": {"tag": "plain_text", "content": "✅ 操作成功"},
             "template": "green"
@@ -362,8 +354,6 @@ def build_success_card(message: str) -> Dict:
 def build_error_card(message: str) -> Dict:
     """构建错误提示卡片"""
     return {
-        "config": {"wide_screen_mode": True},
-        "schema": "2.0",
         "header": {
             "title": {"tag": "plain_text", "content": "❌ 操作失败"},
             "template": "red"
@@ -478,8 +468,6 @@ def build_defect_card(today: date, defects: List[Dict]) -> Dict:
     })
 
     return {
-        "config": {"wide_screen_mode": True},
-        "schema": "2.0",
         "header": {
             "title": {
                 "tag": "plain_text",

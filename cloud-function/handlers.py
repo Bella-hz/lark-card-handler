@@ -40,7 +40,7 @@ class CallbackHandler:
         self.bitable = BitableClient(app_id, app_secret, base_token)
         self.updater = CardUpdater(app_id, app_secret)
         self.base_token = base_token
-        self.builder = CardBuilder(base_token)
+        self.builder = CardBuilder(base_token, app_id, app_secret)
 
     def handle_click(self, action_data: Dict, user_id: str) -> Tuple[Dict, str]:
         """

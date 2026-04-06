@@ -62,35 +62,38 @@ def index():
         logger.info(f"Parsed: action_type={action_type}, action_value={action_value}, user_id={user_id}")
 
         if action_type == "button":
-            # 按钮点击 - 获取卡片
-            action_name = action_value.get("action", "")
+            # 按钮点击 - 使用 handler 处理
+            card, msg_id = handler.handle_click(action_value, user_id)
 
-            # 简单测试：直接返回概览卡片，不调用飞书 API
-            from datetime import date
-            from card_templates import build_overview_card
-            today = date.today()
-            overview = {
-                "dev_in_progress": 5,
-                "dev_completed": 2,
-                "dev_overdue": 1,
-                "test_in_progress": 3,
-                "test_completed": 1,
-                "test_overdue": 0,
-                "defect_pending": 2,
-                "defect_processing": 1,
-                "defect_closed": 0,
-            }
-            card = build_overview_card(today, overview)
+            # 如果有 msg_id，尝试更新原卡片
+            context = event.get("context", {})
+            open_message_id = context.get("open_message_id", "")
 
-            logger.info(f"Returning test card for action={action_name}")
+            if open_message_id and msg_id:
+                # 通过 API 更新卡片
+                try:
+                    handler.updater.update_card(open_message_id, card)
+                    logger.info(f"Updated card message {open_message_id}")
+                except Exception as e:
+                    logger.error(f"Failed to update card: {e}")
 
-            # 飞书卡片回调：直接返回卡片 JSON
-            return jsonify(card)
+            return jsonify({"msg": "ok"})
 
         elif action_type == "input":
             # 表单提交
             card, msg_id = handler.handle_form_submit(action_value, user_id)
-            return jsonify(card)
+
+            # 更新卡片
+            context = event.get("context", {})
+            open_message_id = context.get("open_message_id", "")
+
+            if open_message_id:
+                try:
+                    handler.updater.update_card(open_message_id, card)
+                except Exception as e:
+                    logger.error(f"Failed to update card: {e}")
+
+            return jsonify({"msg": "ok"})
 
         else:
             return jsonify({"msg": "OK"})

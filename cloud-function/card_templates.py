@@ -159,109 +159,29 @@ def build_task_list_card(today: date, category: str, tasks: List[Dict]) -> Dict:
                 }
             })
 
-            # 根据类别显示不同按钮
-            if category == "进行中":
-                # 进行中任务：显示开始/结束按钮
-                actions = [
-                    {
-                        "tag": "button",
-                        "text": {"tag": "plain_text", "content": "▶️ 开始"},
-                        "type": "primary",
-                        "value": {
-                            "action": "start_task",
-                            "record_id": task_record_id,
-                            "table_id": task_table_id
-                        }
-                    },
-                    {
-                        "tag": "button",
-                        "text": {"tag": "plain_text", "content": "🏁 结束"},
-                        "type": "danger",
-                        "value": {
-                            "action": "complete_task",
-                            "record_id": task_record_id,
-                            "table_id": task_table_id
-                        }
-                    },
-                    {
-                        "tag": "button",
-                        "text": {"tag": "plain_text", "content": "📅 开始时间"},
-                        "type": "default",
-                        "value": {
-                            "action": "edit_date_start",
-                            "record_id": task_record_id,
-                            "table_id": task_table_id
-                        }
-                    },
-                    {
-                        "tag": "button",
-                        "text": {"tag": "plain_text", "content": "📅 完成时间"},
-                        "type": "default",
-                        "value": {
-                            "action": "edit_date",
-                            "record_id": task_record_id,
-                            "table_id": task_table_id
-                        }
-                    },
-                ]
-            elif category == "今日完成" or category == "逾期任务":
-                # 已完成/逾期任务：显示结束和备注按钮
-                actions = [
-                    {
-                        "tag": "button",
-                        "text": {"tag": "plain_text", "content": "🏁 结束"},
-                        "type": "danger",
-                        "value": {
-                            "action": "complete_task",
-                            "record_id": task_record_id,
-                            "table_id": task_table_id
-                        }
-                    },
-                    {
-                        "tag": "button",
-                        "text": {"tag": "plain_text", "content": "📝 备注"},
-                        "type": "default",
-                        "value": {
-                            "action": "edit_remark",
-                            "record_id": task_record_id,
-                            "table_id": task_table_id
-                        }
-                    },
-                ]
-            else:
-                # 默认按钮
-                actions = [
-                    {
-                        "tag": "button",
-                        "text": {"tag": "plain_text", "content": "✓ 完成"},
-                        "type": "primary",
-                        "value": {
-                            "action": "complete_task",
-                            "record_id": task_record_id,
-                            "table_id": task_table_id
-                        }
-                    },
-                    {
-                        "tag": "button",
-                        "text": {"tag": "plain_text", "content": "📅 改时间"},
-                        "type": "default",
-                        "value": {
-                            "action": "edit_date",
-                            "record_id": task_record_id,
-                            "table_id": task_table_id
-                        }
-                    },
-                    {
-                        "tag": "button",
-                        "text": {"tag": "plain_text", "content": "📝 备注"},
-                        "type": "default",
-                        "value": {
-                            "action": "edit_remark",
-                            "record_id": task_record_id,
-                            "table_id": task_table_id
-                        }
+            # 所有任务都显示开始/结束按钮
+            actions = [
+                {
+                    "tag": "button",
+                    "text": {"tag": "plain_text", "content": "▶️ 开始"},
+                    "type": "primary",
+                    "value": {
+                        "action": "start_task",
+                        "record_id": task_record_id,
+                        "table_id": task_table_id
                     }
-                ]
+                },
+                {
+                    "tag": "button",
+                    "text": {"tag": "plain_text", "content": "🏁 结束"},
+                    "type": "danger",
+                    "value": {
+                        "action": "complete_task",
+                        "record_id": task_record_id,
+                        "table_id": task_table_id
+                    }
+                },
+            ]
 
             elements.append({
                 "tag": "action",

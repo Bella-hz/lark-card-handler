@@ -35,33 +35,6 @@ class CallbackHandler:
         "tblsJ5woCFfYgrNi": "处理人",
     }
 
-    # 表ID到状态字段的映射（开始时间/完成时间需要动态设置）
-    TABLE_STATUS_FIELDS = {
-        "tblo5L10rWTWjKf9": {"状态": "已完成", "实际完成时间": None},
-        "tblpajWitnEuY3G5": {"状态": "处理完成", "实际完成时间": None},
-        "tblS8qBWisBv6O9N": {"状态": "已完成", "实际完成时间": None},
-        "tbl98ZxWyCcgounb": {"任务状态": "提测通过", "实际完成时间": None},
-        "tblm13vKwIfwYBt0": {"任务状态": "已完成测试", "实际完成时间": None},
-        "tblsJ5woCFfYgrNi": {"当前状态": "已关闭", "关闭时间": None},
-    }
-
-    # 进行中状态
-    IN_PROGRESS_STATUS = {
-        "tblo5L10rWTWjKf9": "进行中",
-        "tblpajWitnEuY3G5": "处理中",
-        "tblS8qBWisBv6O9N": "进行中",
-        "tbl98ZxWyCcgounb": "待测试",
-        "tblm13vKwIfwYBt0": "测试中",
-    }
-
-    # 缺陷状态流转
-    DEFECT_STATUS_FIELDS = {
-        "tblsJ5woCFfYgrNi": {"当前状态": "已关闭", "关闭时间": None},
-    }
-    DEFECT_IN_PROGRESS_STATUS = {
-        "tblsJ5woCFfYgrNi": {"当前状态": "处理中"},
-    }
-
     def __init__(self, app_id: str, app_secret: str, base_token: str):
         self.bitable = BitableClient(app_id, app_secret, base_token)
         self.updater = CardUpdater(app_id, app_secret)
@@ -88,66 +61,40 @@ class CallbackHandler:
             # 任务列表按钮
             elif action == "show_completed":
                 tasks = self.builder.get_completed_tasks()
-                logging.info(f"show_completed: got {len(tasks)} tasks")
                 return self.builder.build_task_list_card("今日完成", tasks), message_id
 
             elif action == "show_in_progress":
                 tasks = self.builder.get_in_progress_tasks()
-                logging.info(f"show_in_progress: got {len(tasks)} tasks")
                 return self.builder.build_task_list_card("进行中", tasks), message_id
 
             elif action == "show_overdue":
                 tasks = self.builder.get_overdue_tasks()
-                logging.info(f"show_overdue: got {len(tasks)} tasks")
                 return self.builder.build_task_list_card("逾期任务", tasks), message_id
 
             elif action == "show_defects":
                 defects = self.builder.get_pending_defects()
-                logging.info(f"show_defects: got {len(defects)} defects")
                 return self.builder.build_defect_card(defects), message_id
 
             # 任务操作
             elif action == "start_task":
-                # 开始任务 - 更新开始时间
+                # 开始任务 - 更新实际开始时间和状态
                 if not self._check_permission(record_id, table_id, user_id):
                     return self.builder.build_error_card("您不是该任务负责人，无法操作"), message_id
                 success = self._mark_task_start(record_id, table_id)
                 if success:
-                    return self.builder.build_success_card("任务已开始"), message_id
+                    return self.builder.build_success_card("✅ 任务已开始"), message_id
                 else:
                     return self.builder.build_error_card("操作失败，请重试"), message_id
 
             elif action == "complete_task":
-                # 完成任务 - 更新完成时间
+                # 完成任务 - 更新实际完成时间和状态
                 if not self._check_permission(record_id, table_id, user_id):
                     return self.builder.build_error_card("您不是该任务负责人，无法操作"), message_id
                 success = self._mark_task_complete(record_id, table_id)
                 if success:
-                    return self.builder.build_success_card("任务已完成"), message_id
+                    return self.builder.build_success_card("🏁 任务已完成"), message_id
                 else:
                     return self.builder.build_error_card("操作失败，请重试"), message_id
-
-            elif action == "complete":
-                # 兼容旧按钮
-                if not self._check_permission(record_id, table_id, user_id):
-                    return self.builder.build_error_card("您不是该任务负责人，无法操作"), message_id
-                success = self._mark_task_complete(record_id, table_id)
-                if success:
-                    return self.builder.build_success_card("任务已完成"), message_id
-                else:
-                    return self.builder.build_error_card("操作失败，请重试"), message_id
-
-            elif action == "edit_date":
-                # 跳转到修改计划完成时间表单
-                return self.builder.build_form_card("修改计划完成时间", "save_plan_end", record_id, table_id), message_id
-
-            elif action == "edit_date_start":
-                # 跳转到修改计划开始时间表单
-                return self.builder.build_form_card("修改计划开始时间", "save_plan_start", record_id, table_id), message_id
-
-            elif action == "edit_remark":
-                # 跳转到备注表单
-                return self.builder.build_form_card("添加备注", "save_remark", record_id, table_id), message_id
 
             # 缺陷操作
             elif action == "defect_accept":
@@ -156,7 +103,7 @@ class CallbackHandler:
                     return self.builder.build_error_card("您不是该缺陷处理人，无法操作"), message_id
                 success = self._mark_defect_accept(record_id, table_id)
                 if success:
-                    return self.builder.build_success_card("已接受缺陷处理"), message_id
+                    return self.builder.build_success_card("✅ 已接受缺陷处理"), message_id
                 else:
                     return self.builder.build_error_card("操作失败，请重试"), message_id
 
@@ -166,7 +113,7 @@ class CallbackHandler:
                     return self.builder.build_error_card("您不是该缺陷处理人，无法操作"), message_id
                 success = self._mark_defect_close(record_id, table_id)
                 if success:
-                    return self.builder.build_success_card("缺陷已关闭"), message_id
+                    return self.builder.build_success_card("🏁 缺陷已关闭"), message_id
                 else:
                     return self.builder.build_error_card("操作失败，请重试"), message_id
 
@@ -176,21 +123,9 @@ class CallbackHandler:
                     return self.builder.build_error_card("您不是该缺陷处理人，无法操作"), message_id
                 success = self._mark_defect_reopen(record_id, table_id)
                 if success:
-                    return self.builder.build_success_card("缺陷已重新打开"), message_id
+                    return self.builder.build_success_card("↩️ 缺陷已重新打开"), message_id
                 else:
                     return self.builder.build_error_card("操作失败，请重试"), message_id
-
-            elif action == "save_plan_end":
-                # 保存计划完成时间
-                return self.builder.build_success_card("计划完成时间已更新"), message_id
-
-            elif action == "save_plan_start":
-                # 保存计划开始时间
-                return self.builder.build_success_card("计划开始时间已更新"), message_id
-
-            elif action == "save_remark":
-                # 保存备注
-                return self.builder.build_success_card("备注已更新"), message_id
 
             elif action == "refresh":
                 return self.builder.build_overview_card(), message_id
@@ -204,49 +139,6 @@ class CallbackHandler:
             logging.error(f"handle_click error: {action_data}, error: {e}", exc_info=True)
             message_id = action_data.get("message_id", "")
             return self.builder.build_error_card(f"处理失败: {str(e)}"), message_id
-
-    def handle_form_submit(self, form_data: Dict, user_id: str) -> Tuple[Dict, str]:
-        """
-        处理表单提交
-        form_data 格式: Lark card input 提交的数据
-        """
-        logging.info(f"handle_form_submit: form_data={form_data}")
-
-        record_id = form_data.get("record_id")
-        table_id = form_data.get("table_id")
-        message_id = form_data.get("message_id", "")
-        action = form_data.get("action", "")
-
-        # 权限检查
-        if not self._check_permission(record_id, table_id, user_id):
-            return self.builder.build_error_card("您不是该任务负责人，无法操作"), message_id
-
-        # 构建更新字段
-        fields = {}
-        # 计划完成时间
-        plan_end = form_data.get("plan_end") or form_data.get("date")
-        if plan_end:
-            fields["计划完成"] = plan_end
-        # 计划开始时间
-        plan_start = form_data.get("plan_start")
-        if plan_start:
-            fields["计划开始"] = plan_start
-        # 备注
-        remark = form_data.get("remark")
-        if remark:
-            fields["备注"] = remark
-
-        if not fields:
-            return self.builder.build_error_card("没有需要保存的内容"), message_id
-
-        # 更新记录
-        try:
-            self.bitable.update_record(table_id, record_id, fields)
-            logging.info(f"handle_form_submit: success, action={action}, fields={fields}")
-            return self.builder.build_success_card("已更新"), message_id
-        except Exception as e:
-            logging.error(f"handle_form_submit error: {e}")
-            return self.builder.build_error_card(f"更新失败: {str(e)}"), message_id
 
     def _check_permission(self, record_id: str, table_id: str, user_id: str) -> bool:
         """检查用户是否有权限操作该任务（管理员或负责人）"""
@@ -283,10 +175,6 @@ class CallbackHandler:
         logging.info(f"_check_permission: user_id={user_id}, owner_ids={owner_ids}, result={result}")
         return result
 
-    def _get_owner_field(self, table_id: str) -> str:
-        """根据表 ID 返回负责人字段名"""
-        return self.TABLE_OWNER_FIELDS.get(table_id, "负责人")
-
     def _mark_task_start(self, record_id: str, table_id: str) -> bool:
         """标记任务开始"""
         today = date.today().isoformat()
@@ -315,7 +203,6 @@ class CallbackHandler:
         """标记任务完成"""
         today = date.today().isoformat()
         fields = {"实际完成": today}
-
         # 根据表 ID 确定状态字段
         if table_id == "tblo5L10rWTWjKf9":
             fields["状态"] = "已完成"
@@ -338,9 +225,7 @@ class CallbackHandler:
 
     def _mark_defect_accept(self, record_id: str, table_id: str) -> bool:
         """接受缺陷处理"""
-        status_fields = self.DEFECT_IN_PROGRESS_STATUS.get(table_id, {})
-        fields = dict(status_fields)
-
+        fields = {"当前状态": "处理中"}
         try:
             self.bitable.update_record(table_id, record_id, fields)
             logging.info(f"_mark_defect_accept: success, record_id={record_id}, table_id={table_id}")
@@ -353,7 +238,6 @@ class CallbackHandler:
         """关闭缺陷"""
         today = date.today().isoformat()
         fields = {"当前状态": "已关闭", "关闭时间": today}
-
         try:
             self.bitable.update_record(table_id, record_id, fields)
             logging.info(f"_mark_defect_close: success, record_id={record_id}, table_id={table_id}")
@@ -365,7 +249,6 @@ class CallbackHandler:
     def _mark_defect_reopen(self, record_id: str, table_id: str) -> bool:
         """重新打开缺陷"""
         fields = {"当前状态": "重新打开"}
-
         try:
             self.bitable.update_record(table_id, record_id, fields)
             logging.info(f"_mark_defect_reopen: success, record_id={record_id}, table_id={table_id}")

@@ -210,6 +210,8 @@ class CallbackHandler:
         处理表单提交
         form_data 格式: Lark card input 提交的数据
         """
+        logging.info(f"handle_form_submit: form_data={form_data}")
+
         record_id = form_data.get("record_id")
         table_id = form_data.get("table_id")
         message_id = form_data.get("message_id", "")
@@ -222,14 +224,17 @@ class CallbackHandler:
         # 构建更新字段
         fields = {}
         # 计划完成时间
-        if form_data.get("plan_end"):
-            fields["计划完成"] = form_data["plan_end"]
+        plan_end = form_data.get("plan_end") or form_data.get("date")
+        if plan_end:
+            fields["计划完成"] = plan_end
         # 计划开始时间
-        if form_data.get("plan_start"):
-            fields["计划开始"] = form_data["plan_start"]
+        plan_start = form_data.get("plan_start")
+        if plan_start:
+            fields["计划开始"] = plan_start
         # 备注
-        if form_data.get("remark"):
-            fields["备注"] = form_data["remark"]
+        remark = form_data.get("remark")
+        if remark:
+            fields["备注"] = remark
 
         if not fields:
             return self.builder.build_error_card("没有需要保存的内容"), message_id

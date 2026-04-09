@@ -178,7 +178,7 @@ class CallbackHandler:
     def _mark_task_start(self, record_id: str, table_id: str) -> bool:
         """标记任务开始"""
         today = date.today().isoformat()
-        fields = {"实际开始": today}
+        fields = {"实际开始时间": today}
         # 根据表 ID 设置对应的进行中状态
         if table_id == "tblo5L10rWTWjKf9":
             fields["状态"] = "进行中"
@@ -202,7 +202,7 @@ class CallbackHandler:
     def _mark_task_complete(self, record_id: str, table_id: str) -> bool:
         """标记任务完成"""
         today = date.today().isoformat()
-        fields = {"实际完成": today}
+        fields = {"实际完成时间": today}
         # 根据表 ID 确定状态字段
         if table_id == "tblo5L10rWTWjKf9":
             fields["状态"] = "已完成"
